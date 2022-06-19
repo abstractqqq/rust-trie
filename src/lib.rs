@@ -1,11 +1,11 @@
-use std::{collections::HashMap, fmt::Formatter, fmt::Display, fmt::Result};
+use std::{collections::HashMap, fmt, fs::File, io::{self, Read}};
 
 struct TrieNode {
     is_terminal: bool,
     was_terminal: bool,
     children: HashMap<char,TrieNode>,
     // optional because the root has no char.
-    key_char: Option<char>,
+    key_char: Option<char>
 }
 
 pub struct Trie {
@@ -35,7 +35,8 @@ impl Trie {
         for c in word.chars(){
             if !rt.children.contains_key(&c) {
                 // cloning a character should be fine
-                rt.children.insert(c.clone(), get_trie_node(Some(c.clone()) ));
+                let d = c.clone();
+                rt.children.insert(d, get_trie_node(Some(d)));
                 if rt.is_terminal {
                     rt.is_terminal = false;
                     rt.was_terminal = true;
@@ -68,11 +69,7 @@ impl Trie {
             rt = rt.children.get(&c).unwrap();
         }
 
-        if only_inserted {
-            rt.is_terminal || rt.was_terminal
-        } else {
-            true 
-        }
+        if only_inserted {rt.is_terminal || rt.was_terminal} else {true} 
     }
 
     pub fn suggest(&self, partial_word:&str) -> String {
@@ -89,18 +86,30 @@ impl Trie {
         // now continue with rt, find all words in the trie
         let mut partial = partial_word.to_string();
         partial.pop(); // this is because we don't want the last character to duplicate
-        let mut words = self.add_next_letter(rt, &vec![partial]);
-        // sort according to the length of the words, smaller comes first
-        // Because of the way add_next_letter works, we can simply take reverse
-        words.reverse();
-        words.join(", ")
+        // output
+        self.add_next_letter(rt, &vec![partial]).join(", ")
     }
+
+    pub fn load_from_txt(&mut self, fpath:&str) -> Result<(), io::Error> {
+        let mut f = File::open(fpath)?;
+        let mut s = String::new();
+        f.read_to_string(&mut s)?;
+        for line in s.lines() {
+            for w in line.split(",") {
+                let d = w.trim();
+                if d != "" {
+                    self.insert(d);
+                }
+            }
+        }
+        Ok(())
+    }
+
 
     fn get_string(&self) -> String {
         let mut word_list:Vec<String> = Vec::new();
-        let dummy = vec!["".to_string()];
         for tn in self.root.children.values(){
-            word_list.extend(self.add_next_letter(tn, &dummy))
+            word_list.extend(self.add_next_letter(tn, &vec!["".to_string()]))
         }
 
         word_list.join(", ")
@@ -116,14 +125,9 @@ impl Trie {
         if node.is_terminal {
             add_letter
         } else {
-            let mut output:Vec<String> = Vec::new();
-            // let mut all_children_words:Vec<Vec<String>> = Vec::new();
+            let mut output:Vec<String> = if node.was_terminal {add_letter.clone()} else {Vec::new()};
             for c in node.children.values() {
                 output.extend(self.add_next_letter(c, &add_letter));
-            }
-
-            if node.was_terminal {
-                output.extend(add_letter)
             }
 
             output            
@@ -132,8 +136,8 @@ impl Trie {
 
 }
 
-impl Display for Trie {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl fmt::Display for Trie {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.get_string())
     }
 }

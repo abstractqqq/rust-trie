@@ -1,11 +1,16 @@
+use std::process;
 mod lib;
 
 fn main() {
     
     let mut t = lib::Trie::new();
-    let vocab = vec!["hello", "test", "testing", "world", "worldly", "hellokitty", "ant", "an"];
-    for v in vocab {
-        t.insert(v);
+    // let vocab = vec!["hello", "test", "testing", "world", "worldly", "hellokitty", "ant", "an"];
+    // for v in vocab {
+    //     t.insert(v);
+    // }
+    if let Err(e) = t.load_from_txt("vocab.txt") {
+        println!("Error when loading from text: {}", e);
+        process::exit(1);
     }
 
     println!("hello?: {}", t.search("hello", true));
@@ -20,5 +25,7 @@ fn main() {
     println!("All inserted words of the tire are: {}", t);
     println!("If I type in 'he', the trie will suggest the words: {}", t.suggest("he"));
     println!("If I type in 'a', the trie will suggest the words: {}", t.suggest("a"));
+
+
 
 }
